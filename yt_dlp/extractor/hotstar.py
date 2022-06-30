@@ -53,7 +53,8 @@ class HotStarBaseIE(InfoExtractor):
                 'X-HS-Request-Id': '48f15954-2e30-4828-9577-e645f64bcce5',
                 'X-Country-Code': 'my',
                 'X-HS-UserToken': token,
-            }, data = {
+            }, 
+            data = {
                 'os_name': 'Windows',
                 'os_version': '10',
                 'app_name': 'web',
@@ -84,7 +85,7 @@ class HotStarBaseIE(InfoExtractor):
                         'HDCP_V1',
                     ],
                 },
-            }
+            })
         if response['message'] != "Playback URL's fetched successfully":
             raise ExtractorError(
                 response['message'], expected=True)
