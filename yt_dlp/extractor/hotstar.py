@@ -49,11 +49,42 @@ class HotStarBaseIE(InfoExtractor):
             f'{self._API_URL}/{path}', video_id, query=query,
             headers={
                 'hotstarauth': auth,
-                'x-hs-appversion': '6.72.2',
-                'x-hs-platform': 'web',
-                'x-hs-usertoken': token,
-            })
-
+                'referer': 'https://www.hotstar.com/',
+                'X-HS-Request-Id': '48f15954-2e30-4828-9577-e645f64bcce5',
+                'X-Country-Code': 'my',
+                'X-HS-UserToken': token,
+            }, data = {
+                'os_name': 'Windows',
+                'os_version': '10',
+                'app_name': 'web',
+                'app_version': '7.35.0',
+                'platform': 'Chrome',
+                'platform_version': '103.0.0.0',
+                'client_capabilities': {
+                    'ads': ['non_ssai'],
+                    'audio_channel': ['stereo'],
+                    'dvr': ['short'],
+                    'package': ['dash','hls'],
+                    'dynamic_range': ['sdr'],
+                    'video_codec': ['h264'],
+                    'encryption': ['widevine'],
+                    'ladder': ['tv'],
+                    'container': ['fmp4'],
+                    'resolution': ['hd',]
+                },
+                'drm_parameters': {
+                    'widevine_security_level': [
+                        'SW_SECURE_DECODE',
+                        'SW_SECURE_CRYPTO',
+                    ],
+                    'hdcp_version': [
+                        'HDCP_V2_2',
+                        'HDCP_V2_1',
+                        'HDCP_V2',
+                        'HDCP_V1',
+                    ],
+                },
+            }
         if response['message'] != "Playback URL's fetched successfully":
             raise ExtractorError(
                 response['message'], expected=True)
@@ -73,7 +104,7 @@ class HotStarBaseIE(InfoExtractor):
     def _call_api_v2(self, path, video_id, st=None, cookies=None):
         return self._call_api_impl(
             f'{path}/content/{video_id}', video_id, st=st, cookies=cookies, query={
-                'desired-config': 'audio_channel:stereo|container:fmp4|dynamic_range:hdr|encryption:plain|ladder:tv|package:dash|resolution:fhd|subs-tag:HotstarVIP|video_codec:h265',
+                'desired-config': 'audio_channel:stereo|container:fmp4|dynamic_range:sdr|encryption:widevine|ladder:tv|package:dash|resolution:fhd|subs-tag:HotstarPremium|video_codec:h264',
                 'device-id': cookies.get('device_id').value if cookies.get('device_id') else compat_str(uuid.uuid4()),
                 'os-name': 'Windows',
                 'os-version': '10',
@@ -83,7 +114,7 @@ class HotStarBaseIE(InfoExtractor):
 class HotStarIE(HotStarBaseIE):
     IE_NAME = 'hotstar'
     _VALID_URL = r'''(?x)
-        https?://(?:www\.)?hotstar\.com(?:/in)?/(?!in/)
+        https?://(?:www\.)?hotstar\.com(?:/my)?/(?!my/)
         (?:
             (?P<type>movies|sports|episode|(?P<tv>tv))/
             (?(tv)(?:[^/?#]+/){2}|[^?#]*)
@@ -173,7 +204,7 @@ class HotStarIE(HotStarBaseIE):
         headers = {'Referer': f'{self._BASE_URL}/in'}
 
         # change to v2 in the future
-        playback_sets = self._call_api_v2('play/v1/playback', video_id, st=st, cookies=cookies)['playBackSets']
+        playback_sets = self._call_api_v2('play/v3/playback', video_id, st=st, cookies=cookies)['playBackSets']
         for playback_set in playback_sets:
             if not isinstance(playback_set, dict):
                 continue
@@ -226,7 +257,7 @@ class HotStarIE(HotStarBaseIE):
             subs = self._merge_subtitles(subs, current_subs)
 
         if not formats and geo_restricted:
-            self.raise_geo_restricted(countries=['IN'], metadata_available=True)
+            self.raise_geo_restricted(countries=['MY'], metadata_available=True)
         self._sort_formats(formats)
         for f in formats:
             f.setdefault('http_headers', {}).update(headers)
@@ -289,7 +320,7 @@ class HotStarPrefixIE(InfoExtractor):
 
 class HotStarPlaylistIE(HotStarBaseIE):
     IE_NAME = 'hotstar:playlist'
-    _VALID_URL = r'https?://(?:www\.)?hotstar\.com/tv/[^/]+/s-\w+/list/[^/]+/t-(?P<id>\w+)'
+    _VALID_URL = r'https?://(?:www\.)?hotstar\.com/.*/[^/]+/s-\w+/list/[^/]+/t-(?P<id>\w+)'
     _TESTS = [{
         'url': 'https://www.hotstar.com/tv/savdhaan-india/s-26/list/popular-clips/t-3_2_26',
         'info_dict': {
@@ -314,7 +345,7 @@ class HotStarPlaylistIE(HotStarBaseIE):
 
 class HotStarSeriesIE(HotStarBaseIE):
     IE_NAME = 'hotstar:series'
-    _VALID_URL = r'(?P<url>https?://(?:www\.)?hotstar\.com(?:/in)?/tv/[^/]+/(?P<id>\d+))'
+    _VALID_URL = r'(?P<url>https?://(?:www\.)?hotstar\.com(?:/my)?/tv/[^/]+/(?P<id>\d+))'
     _TESTS = [{
         'url': 'https://www.hotstar.com/in/tv/radhakrishn/1260000646',
         'info_dict': {
@@ -338,7 +369,7 @@ class HotStarSeriesIE(HotStarBaseIE):
     def _real_extract(self, url):
         url, series_id = self._match_valid_url(url).groups()
         headers = {
-            'x-country-code': 'IN',
+            'x-country-code': 'MY',
             'x-platform-code': 'PCTV',
         }
         detail_json = self._download_json(
